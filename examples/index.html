@@ -1,0 +1,313 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Virtual Office | Arturo</title>
+    <meta name="description" content="Virtual Office " />
+
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.2.0/dist/aframe-extras.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/RGBELoader.js"></script>
+
+    <script src="./js/components/combo-ocean.js"></script>
+    <script src="./js/components/hdr-light.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.5.0/socket.io.slim.js"></script>
+    <script src="https://unpkg.com/aframe-look-at-component@0.8.0/dist/aframe-look-at-component.min.js"></script>
+    <script src="/easyrtc/easyrtc.js"></script>
+    <script src="/dist/networked-aframe.js"></script>
+    <script src="https://unpkg.com/aframe-environment-component@1.3.2/dist/aframe-environment-component.min.js"></script>
+    <script src="./js/spawn-in-circle.component.js"></script>
+    <link rel="stylesheet" href="./css/style.css" />
+    <script>
+      // Temporary workaround for template declaration; see issue 167
+      NAF.schemas.getComponentsOriginal = NAF.schemas.getComponents;
+      NAF.schemas.getComponents = (template) => {
+        if (!NAF.schemas.hasTemplate('#head-template')) {
+          NAF.schemas.add({
+            template: '#head-template',
+            components: [
+              'position',
+              'rotation',
+
+              // In this example, we don't sync the material.color itself, like the basic example;
+              // we instead sync player-info, which includes color setting + updating.
+              // (you can see an example of the other pattern in the basic.html demo)
+              'player-info'
+            ]
+          });
+        }
+
+        const components = NAF.schemas.getComponentsOriginal(template);
+        return components;
+      };
+    </script>
+
+    <script>
+      window.ntExample = {
+        randomColor: () => {
+          return '#' + new THREE.Color(Math.random(), Math.random(), Math.random()).getHexString();
+        }
+      };
+
+      AFRAME.registerComponent('player-info', {
+        // notice that color and name are both listed in the schema; NAF will only keep
+        // properties declared in the schema in sync.
+        schema: {
+          name: { type: 'string', default: 'user-' + Math.round(Math.random() * 10000) },
+          color: {
+            type: 'color', // btw: color is just a string under the hood in A-Frame
+            default: window.ntExample.randomColor()
+          }
+        },
+
+        init: function () {
+          this.head = this.el.querySelector('.head');
+          this.nametag = this.el.querySelector('.nametag');
+
+          this.ownedByLocalUser = this.el.id === 'player';
+          if (this.ownedByLocalUser) {
+            // populate the html overlay with the correct name on init
+            this.nametagInput = document.getElementById('username-overlay');
+            this.nametagInput.value = this.data.name;
+
+            // add the initial color to the html overlay color picker button
+            document.querySelector('#color-changer').style.backgroundColor = this.data.color;
+            document.querySelector('#color-changer').style.color = this.data.color;
+          }
+        },
+
+        // here as an example, not used in current demo. Could build a user list, expanding on this.
+        listUsers: function () {
+          console.log(
+            'userlist',
+            [...document.querySelectorAll('[player-info]')].map((el) => el.components['player-info'].data.name)
+          );
+        },
+
+        newRandomColor: function () {
+          this.el.setAttribute('player-info', 'color', window.ntExample.randomColor());
+        },
+
+        update: function () {
+          if (this.head) this.head.setAttribute('material', 'color', this.data.color);
+          if (this.nametag) this.nametag.setAttribute('value', this.data.name);
+        }
+      });
+    </script>
+  </head>
+
+  <body>
+    <!-- This <button> and <input> will overlay on top of the A-Frame canvas--this style is all you need.
+         Note the onclick and oninput attributes; on every call, they will run .setAttribute() for the player-info
+         component's data. NAF will keep that property in sync, since 'name' and 'color' are declared in the schema
+         of the 'player-info' component
+    -->
+    <!-- <button
+      id="color-changer"
+      style="z-index: 100; bottom: 24px; left: 24px; position: fixed"
+      onclick="let newColor = window.ntExample.randomColor();
+             document.getElementById('player').setAttribute('player-info', 'color', newColor); 
+             document.querySelector('#color-changer').style.backgroundColor = newColor;
+             document.querySelector('#color-changer').style.color = newColor;
+    "
+    >
+      ■
+    </button> -->
+    <div class="container">
+      <img src="./img/logo.png" width="450px" alt="">
+      <input
+        oninput="document.getElementById('player').setAttribute('player-info', 'name', this.value)"
+        required
+        placeholder="Enter your Name..."
+        class="input"
+        id="username-overlay"
+        type="text"
+      />
+      <button class="btn" type="button">
+        <strong>Enter</strong>
+        <div id="container-stars">
+          <div id="stars"></div>
+        </div>
+
+        <div id="glow">
+          <div class="circle"></div>
+          <div class="circle"></div>
+        </div>
+      </button>
+
+      <div class="responsive" style="color: antiquewhite; font-size: large; text-align: center">
+        Allow access to your microphone to enter the Multiplayer Experience.
+      </div>
+    </div>
+
+    <a-scene
+      hdri
+      networked-scene="
+      room: office-room;
+      debug: true;
+      adapter: easyrtc;
+      audio: true;
+    "
+    >
+      <a-assets>
+        <template id="rig-template">
+          <a-entity></a-entity>
+        </template>
+
+        <template id="head-template">
+          <a-entity class="avatar" player-info networked-audio-source>
+            <a-sphere class="head" scale="0.2 0.22 0.2"></a-sphere>
+            <a-entity class="face" position="0 0.05 0">
+              <a-sphere class="eye" color="white" position="0.06 0.05 -0.16" scale="0.04 0.04 0.04">
+                <a-sphere class="pupil" color="black" position="0 0 -1" scale="0.2 0.2 0.2"></a-sphere>
+              </a-sphere>
+              <a-sphere class="eye" color="white" position="-0.06 0.05 -0.16" scale="0.04 0.04 0.04">
+                <a-sphere class="pupil" color="black" position="0 0 -1" scale="0.2 0.2 0.2"></a-sphere>
+              </a-sphere>
+            </a-entity>
+
+            <!-- here we add a text component for a nametag; the value will be updated by the player-info component -->
+            <a-text
+              class="nametag"
+              position="0 -0.35 0"
+              side="double"
+              scale="0.5 0.5 0.5"
+              look-at="[camera]"
+              text="align: center"
+            ></a-text>
+          </a-entity>
+        </template>
+
+        <a-asset-item id="office-model" src="./assets/models/office_baked.glb"></a-asset-item>
+        <a-asset-item id="navmesh" src="./assets/models/navmesh.gltf"></a-asset-item>
+      </a-assets>
+
+
+
+
+
+      <a-entity
+        id="rig"
+        spawn-in-circle
+        movement-controls="speed: 0.25;  constrainToNavMesh: true"
+        networked="template:#rig-template;attachTemplateToLocal:false;"
+      >
+        <a-entity
+          id="player"
+          networked="template:#head-template;attachTemplateToLocal:false;"
+          camera
+          position="0 1.3 0"
+          look-controls
+        >
+          <a-sphere class="head" visible="false" random-color></a-sphere>
+        </a-entity>
+        <a-entity laser-controls="hand : left;" raycaster="objects: .clickable; far: 5"></a-entity>
+        <a-entity laser-controls="hand : right;" raycaster="objects: .clickable; far: 5"></a-entity>
+      </a-entity>
+
+<!-- IMAGE ///////////////////////////////// -->
+
+<!-- Arturo ///// -->
+<a-image src="./img/arturo.png" geometry="width: 1.49" position="-1.8373 0.38812 -1.43385"></a-image>
+<a-image src="./img/employees.png" material="" geometry="height: 2.12; width: 3.66" position="-3.22962 1.75283 1.08283" rotation="0 90 0"></a-image>
+<a-image src="./img/logo.png" material="" geometry="height: 2; width: 2.49" position="3.69513 1.80996 -0.10256" rotation="0 -90 0"></a-image>
+
+
+
+
+
+
+      <a-gltf-model position="0 -0.3 0" src="#office-model"></a-gltf-model>
+      <a-gltf-model src="#navmesh" visible="false" nav-mesh></a-gltf-model>
+
+      <a-ocean-plane height="100" width="100" position="0 -1 0"></a-ocean-plane>
+
+      <a-sky
+        rotation="0 180 0"
+        src="https://cdn.glitch.global/c2ccdc8b-d87a-49af-95e6-e3cd029bbd31/2048-polyhaven-wasteland_clouds_puresky.jpeg?v=1699386634988"
+      ></a-sky>
+    </a-scene>
+
+    <div class="actions">
+
+<!-- Change Color  -->
+    <button
+      id="color-changer"
+      style="z-index: 100; bottom: 24px; left: 24px; position: fixed"
+      onclick="let newColor = window.ntExample.randomColor();
+             document.getElementById('player').setAttribute('player-info', 'color', newColor); 
+             document.querySelector('#color-changer').style.backgroundColor = newColor;
+             document.querySelector('#color-changer').style.color = newColor;
+    "
+    >
+      ■
+    </button>
+
+      <input type="checkbox" id="checkbox" />
+      <label class="switch" for="checkbox">
+        <div class="mic-on">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            fill="currentColor"
+            class="bi bi-mic-fill"
+            viewBox="0 0 16 16"
+          >
+            <path d="M5 3a3 3 0 0 1 6 0v5a3 3 0 0 1-6 0V3z"></path>
+            <path
+              d="M3.5 6.5A.5.5 0 0 1 4 7v1a4 4 0 0 0 8 0V7a.5.5 0 0 1 1 0v1a5 5 0 0 1-4.5 4.975V15h3a.5.5 0 0 1 0 1h-7a.5.5 0 0 1 0-1h3v-2.025A5 5 0 0 1 3 8V7a.5.5 0 0 1 .5-.5z"
+            ></path>
+          </svg>
+        </div>
+        <div class="mic-off">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            fill="currentColor"
+            class="bi bi-mic-mute-fill"
+            viewBox="0 0 16 16"
+          >
+            <path
+              d="M13 8c0 .564-.094 1.107-.266 1.613l-.814-.814A4.02 4.02 0 0 0 12 8V7a.5.5 0 0 1 1 0v1zm-5 4c.818 0 1.578-.245 2.212-.667l.718.719a4.973 4.973 0 0 1-2.43.923V15h3a.5.5 0 0 1 0 1h-7a.5.5 0 0 1 0-1h3v-2.025A5 5 0 0 1 3 8V7a.5.5 0 0 1 1 0v1a4 4 0 0 0 4 4zm3-9v4.879L5.158 2.037A3.001 3.001 0 0 1 11 3z"
+            ></path>
+            <path d="M9.486 10.607 5 6.12V8a3 3 0 0 0 4.486 2.607zm-7.84-9.253 12 12 .708-.708-12-12-.708.708z"></path>
+          </svg>
+        </div>
+      </label>
+    </div>
+
+    <script>
+      const enterButton = document.querySelector('.btn');
+      const container = document.querySelector('.container');
+      const input = document.querySelector('#username-overlay');
+      enterButton.addEventListener('click', function (e) {
+        if (input.value === '') {
+          alert('Please Enter Your Name');
+        } else {
+          container.classList.add('slide-up');
+          setTimeout(function () {
+            container.style.display = 'none';
+          }, 500);
+        }
+      });
+
+      // Mic status
+      let micEnabled = true;
+      // Mic button element
+      const micBtnEle = document.getElementById('mic-btn');
+      const checkbox = document.getElementById('checkbox');
+
+      // Called by Networked-Aframe when connected to server
+      function onConnect() {
+        console.log('onConnect', new Date());
+
+        // Handle mic button click (Mute and Unmute)
+        checkbox.addEventListener('change', function () {
+          NAF.connection.adapter.enableMicrophone(!micEnabled);
+          micEnabled = !micEnabled;
+        });
+      }
+    </script>
+  </body>
+</html>
