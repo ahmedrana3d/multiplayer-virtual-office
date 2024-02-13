@@ -31,7 +31,12 @@
               // In this example, we don't sync the material.color itself, like the basic example;
               // we instead sync player-info, which includes color setting + updating.
               // (you can see an example of the other pattern in the basic.html demo)
-              'player-info'
+              'player-info',
+              {
+                selector: '.head',
+                component: 'material',
+                property: 'color'
+              }
             ]
           });
         }
