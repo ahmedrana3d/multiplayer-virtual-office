@@ -101,22 +101,7 @@
   </head>
 
   <body>
-    <!-- This <button> and <input> will overlay on top of the A-Frame canvas--this style is all you need.
-         Note the onclick and oninput attributes; on every call, they will run .setAttribute() for the player-info
-         component's data. NAF will keep that property in sync, since 'name' and 'color' are declared in the schema
-         of the 'player-info' component
-    -->
-    <!-- <button
-      id="color-changer"
-      style="z-index: 100; bottom: 24px; left: 24px; position: fixed"
-      onclick="let newColor = window.ntExample.randomColor();
-             document.getElementById('player').setAttribute('player-info', 'color', newColor); 
-             document.querySelector('#color-changer').style.backgroundColor = newColor;
-             document.querySelector('#color-changer').style.color = newColor;
-    "
-    >
-      ■
-    </button> -->
+
     <div class="container">
       <img src="./img/logo.png" width="450px" alt="">
       <input
@@ -184,6 +169,14 @@
 
         <a-asset-item id="office-model" src="./assets/models/office_baked.glb"></a-asset-item>
         <a-asset-item id="navmesh" src="./assets/models/navmesh.gltf"></a-asset-item>
+
+
+        <!-- Images  -->
+
+        <img id="arturo" src="./img/arturo.png">/>
+        <img id="employees" src="./img/employees.png">/>
+        <img id="logo" src="./img/logo.png">/>
+
       </a-assets>
 
 
@@ -220,9 +213,9 @@
 <!-- IMAGE ///////////////////////////////// -->
 
 <!-- Arturo ///// -->
-<a-image src="./img/arturo.png" geometry="width: 1.49" position="-1.8373 0.38812 -1.43385"></a-image>
-<a-image src="./img/employees.png" material="" geometry="height: 2.12; width: 3.66" position="-3.22962 1.75283 1.08283" rotation="0 90 0"></a-image>
-<a-image src="./img/logo.png" material="" geometry="height: 2; width: 2.49" position="3.69513 1.80996 -0.10256" rotation="0 -90 0"></a-image>
+<a-image src="#arturo" geometry="width: 1.49" position="-1.8373 0.38812 -1.43385"></a-image>
+<a-image src="#employees" material="" geometry="height: 2.12; width: 3.66" position="-3.22962 1.75283 1.08283" rotation="0 90 0"></a-image>
+<a-image src="#logo" material="" geometry="height: 2; width: 2.49" position="3.69513 1.80996 -0.10256" rotation="0 -90 0"></a-image>
 
 
 
