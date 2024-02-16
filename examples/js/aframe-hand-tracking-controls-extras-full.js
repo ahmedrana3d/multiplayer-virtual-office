@@ -897,7 +897,7 @@
         if (!(this.canJump && this.tpUp)) return;
         this.canJump = false;
         this.fadeSphere.emit("fadeout");
-        this.fadeSphere.setAttribute("visible", "true");
+        this.fadeSphere.setAttribute("visible", "false");
       },
       sphereFaded: function () {
         this.tpEntity.emit("tp-down");
