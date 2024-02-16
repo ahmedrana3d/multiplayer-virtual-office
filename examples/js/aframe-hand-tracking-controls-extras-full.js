@@ -840,10 +840,12 @@
     
         this.fadeSphere = document.createElement("a-sphere");
         this.fadeSphere.setAttribute("radius", this.data.fadeSphereRadius);
+        this.fadeSphere.setAttribute("visible", "false");
         this.fadeSphere.setAttribute("material", {
           "color": "black",
           "transparent": "true",
           "opacity": "0.0",
+        
           "shader": "flat",
           "side": "back"
         });
@@ -884,6 +886,7 @@
         if ("fadeDuration" in diff) {
           this.fadeSphere.setAttribute("animation__fadeout", "dur", this.data.fadeDuration);
           this.fadeSphere.setAttribute("animation__fadein", "dur", this.data.fadeDuration);
+          this.fadeSphere.setAttribute("visible", "false");
         }
     
         if (!origin) {
@@ -894,15 +897,19 @@
         if (!(this.canJump && this.tpUp)) return;
         this.canJump = false;
         this.fadeSphere.emit("fadeout");
+        this.fadeSphere.setAttribute("visible", "true");
       },
       sphereFaded: function () {
         this.tpEntity.emit("tp-down");
         this.fadeSphere.emit("fadein");
+        this.fadeSphere.setAttribute("visible", "false");
+        
       },
       pinchEnded: function () {
         // enable teleporting
         this.canJump = true;
         this.tpUp = !this.tpUp;
+        this.fadeSphere.setAttribute("visible", "false");
       },
       handExtrasReady: function (evt) {
         this.jointAPI = evt.detail.data.jointAPI;
